@@ -1,0 +1,82 @@
+[user]
+    name = 阿毛
+    email = amao@example.com
+
+[core]
+    editor = code
+    autocrlf = input
+    safecrlf = true
+
+[commit]
+    template = .gitcommit_template
+
+[init]
+    defaultBranch = main
+
+[push]
+    default = simple
+
+[pull]
+    rebase = false
+
+[merge]
+    tool = vs code
+    conflictstyle = diff3
+
+[diff]
+    tool = vs code
+    algorithm = patience
+
+[github]
+    user = amao-tech
+
+[alias]
+    st = status
+    co = checkout
+    br = branch
+    ci = commit
+    di = diff
+    lg = log --oneline --graph --decorate --all
+    ll = log --oneline --graph --decorate --stat
+    cp = cherry-pick
+    rb = rebase
+    unstage = reset HEAD --
+    last = log -1 HEAD --stat
+
+[color]
+    ui = true
+    diff = auto
+    branch = auto
+    status = auto
+    interactive = auto
+
+[log]
+    date = relative
+
+[help]
+    autocorrect = 1
+
+[filter "lfs"]
+    clean = git-lfs clean -- %f
+    smudge = git-lfs smudge -- %f
+    process = git-lfs filter-process
+    required = true
+
+[credential]
+    helper = osxkeychain
+
+[http]
+    proxy = http://127.0.0.1:7890
+    https-proxy = http://127.0.0.1:7890
+
+[github]
+    user = amao-tech
+
+[gitlab]
+    user = amao-tech
+
+[commitizen]
+    name = cz_commitizen
+
+[commitizen]
+    bump_message = "chore(release): {{currentVersion}} → {{newVersion}}"
