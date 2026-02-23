@@ -77,7 +77,13 @@ const weiqiSlice = createSlice({
     setBoardSize: (state, action: PayloadAction<number>) => {
       state.boardSize = action.payload
       state.stones = initializeBoard(action.payload)
-      state.resetBoard()
+      state.currentPlayer = 'black'
+      state.gameHistory = []
+      state.lastMove = null
+      state.captured = {
+        black: 0,
+        white: 0,
+      }
     },
   },
 })

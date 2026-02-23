@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>围棋Web应用 - 完整加载 ✅</title>
+    <style>
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+        #root { min-height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module">
+        import React from 'https://unpkg.com/react@18/umd/react.development.js'
+        import ReactDOM from 'https://unpkg.com/react-dom@18/umd/react-dom.development.js'
+        import { useState } from 'https://unpkg.com/@babel/standalone/babel.min.js'
+
+        const App = () => {
+            const [count, setCount] = useState(0)
+            const [stones, setStones] = useState(Array(19).fill(null).map(() => Array(19).fill(null)))
+            const [currentPlayer, setCurrentPlayer] = useState('black')
+
+            const handlePlaceStone = (row, col) => {
+                if (stones[row][col] === null) {
+                    const newStones = stones.map(row => [...row])
+                    newStones[row][col] = currentPlayer
+                    setStones(newStones)
+                    setCurrentPlayer(currentPlayer === 'black' ? 'white' : 'black')
+                }
+            }
+
+            const styles = {
+                container: { padding: '20px' },
+                title: { fontSize: '24px', fontWeight: 'bold', textAlign: 'center', marginBottom: '20px' },
+                center: { textAlign: 'center' },
+                currentTurn: { fontSize: '18px', marginBottom: '10px' },
+                blackTurn: { fontWeight: 'bold', color: 'black' },
+                whiteTurn: { fontWeight: 'bold', color: 'gray' },
+                button: { padding: '10px 20px', margin: '5px', border: 'none', cursor: 'pointer', borderRadius: '5px' },
+                blueButton: { backgroundColor: '#007bff', color: 'white' },
+                greenButton: { backgroundColor: '#28a745', color: 'white' },
+                board: { display: 'inline-grid', gridTemplateColumns: 'repeat(19, 30px)', gap: '0', border: '2px solid #8b7355' },
+                cell: { width: '30px', height: '30px', border: '1px solid #8b7355', position: 'relative', cursor: 'pointer' },
+                blackStone: { position: 'absolute', top: '2px', left: '2px', width: '26px', height: '26px', borderRadius: '50%', backgroundColor: 'black' },
+                whiteStone: { position: 'absolute', top: '2px', left: '2px', width: '26px', height: '26px', borderRadius: '50%', backgroundColor: 'white', border: '1px solid #ccc' }
+            }
+
+            return React.createElement('div', { style: styles.container }, [
+                React.createElement('h1', { key: 'title', style: styles.title }, '围棋Web应用 完整加载 ✅'),
+                
+                React.createElement('div', { key: 'turn', style: { ...styles.center, ...styles.currentTurn } }, [
+                    '当前回合: ',
+                    React.createElement('span', { 
+                        key: 'currentPlayer', 
+                        style: currentPlayer === 'black' ? styles.blackTurn : styles.whiteTurn 
+                    }, currentPlayer === 'black' ? '黑棋' : '白棋')
+                ]),
+
+                React.createElement('div', { key: 'buttons', style: { ...styles.center, marginBottom: '20px' } }, [
+                    React.createElement('button', { 
+                        key: 'test', 
+                        style: { ...styles.button, ...styles.blueButton },
+                        onClick: () => setCount(count + 1)
+                    }, `点击测试: ${count}`),
+                    React.createElement('button', { 
+                        key: 'reset', 
+                        style: { ...styles.button, ...styles.greenButton },
+                        onClick: () => {
+                            setStones(Array(19).fill(null).map(() => Array(19).fill(null)))
+                            setCurrentPlayer('black')
+                        }
+                    }, '重新开始')
+                ]),
+
+                React.createElement('div', { key: 'board-container', style: styles.center }, [
+                    React.createElement('div', { 
+                        key: 'board', 
+                        style: styles.board,
+                    }, stones.map((row, rowIndex) => 
+                        row.map((stone, colIndex) => 
+                            React.createElement('div', { 
+                                key: `${rowIndex}-${colIndex}`,
+                                style: styles.cell,
+                                onClick: () => handlePlaceStone(rowIndex, colIndex)
+                            }, stone && React.createElement('div', { 
+                                style: stone === 'black' ? styles.blackStone : styles.whiteStone 
+                            }))
+                        )
+                    ))
+                ]),
+
+                React.createElement('div', { key: 'status', style: { ...styles.center, marginTop: '20px', color: 'green', fontWeight: 'bold' } }, '✅ 围棋Web应用完整加载完成！')
+            ])
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(React.StrictMode, null, React.createElement(App)))
+    </script>
+</body>
+</html>

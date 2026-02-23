@@ -1,0 +1,55 @@
+{
+  "heartbeat": {
+    "enabled": true,
+    "tickInterval": 1800000,
+    "checkInterval": 1800000,
+    "autoRecovery": true,
+    "maxRetries": 3,
+    "timeout": 30000,
+    "logging": true,
+    "timestamps": true,
+    "checkpoints": [
+      "00:00", "01:00", "02:00", "03:00", "04:00", "05:00", 
+      "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", 
+      "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", 
+      "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"
+    ],
+    "amaospecific": {
+      "active": true,
+      "workspace": "/Users/galthran2027/.openclaw/workspace/agents/amao_workspace",
+      "HEARTBEAT_FILE": "/Users/galthran2027/.openclaw/workspace/agents/amao_workspace/HEARTBEAT.md",
+      "check_tasks": true,
+      "reporting_frequency": "hourly",
+      "development_focus": "围棋Web App",
+      "task_T003": true,
+      "progress_monitoring": "active"
+    }
+  },
+  "cron": {
+    "schedule": [
+      {
+        "command": "/Users/galthran2027/.openclaw/workspace/devvi_amao_cron_skills_report.sh",
+        "schedule": "0 * * * *",
+        "description": "每小时Devvi-阿毛进度报告"
+      }
+    ]
+  },
+  "agents": {
+    "amao": {
+      "id": "amao",
+      "name": "阿毛",
+      "workspace": "/Users/galthran2027/.openclaw/workspace/agents/amao_workspace",
+      "heartbeat_enabled": true,
+      "tick_interval": 60000,
+      "check_interval": 300000,
+      "development_tasks": [
+        {
+          "task_id": "T003",
+          "name": "侧边栏选手信息与元数据",
+          "status": "active",
+          "quality": "TypeScript 100%, ESLint 0 errors"
+        }
+      ]
+    }
+  }
+}
