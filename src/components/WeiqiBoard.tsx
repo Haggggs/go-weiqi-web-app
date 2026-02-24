@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { generateSGF, parseSGF, downloadSGF, readLocalSGF, SGFGame } from '../utils/sgf'
 import { GameLibrary, gameLibrary, GameRecord, SearchOptions } from '../utils/gameLibrary'
 import { goGameSites, popularPlayers, popularEvents, SearchSuggestion } from '../utils/goGameSites'
@@ -23,6 +23,28 @@ const WeiqiBoard: React.FC = () => {
   const [blackPlayer, setBlackPlayer] = useState('黑方')
   const [whitePlayer, setWhitePlayer] = useState('白方')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // 标签页状态
+  const [activeTab, setActiveTab] = useState<string>('none')
+  
+  // 计时器状态
+  const [gameTimer, setGameTimer] = useState(3600)
+  const [timerRunning, setTimerRunning] = useState(false)
+  
+  // 标记状态
+  const [markMode, setMarkMode] = useState(false)
+  
+  // 复盘状态
+  const [reviewMode, setReviewMode] = useState(false)
+  const [reviewMove, setReviewMove] = useState(0)
+  const [moveHistory, setMoveHistory] = useState<Array<{row:number, col:number, color:'black'|'white', num:number}>>([])
+  
+  // 计时器效果
+  useEffect(() => {
+    if (!timerRunning || gameTimer <= 0) return
+    const timer = setInterval(() => setGameTimer(t => t > 0 ? t - 1 : 0), 1000)
+    return () => clearInterval(timer)
+  }, [timerRunning, gameTimer])
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [showFetchDialog, setShowFetchDialog] = useState(false)
   const [showLibraryDialog, setShowLibraryDialog] = useState(false)
@@ -361,7 +383,7 @@ const WeiqiBoard: React.FC = () => {
   }
 
   // 解析SGF棋谱并自动设置规则
-  const parseSGF = (sgfContent: string): { rule: RuleType, moves: Array<{row: number, col: number, color: 'black' | 'white'}> } => {
+  const parseSGF = (sgfContent: string): any => {
     // 查找规则标签
     let detectedRule: RuleType = 'chinese' // 默认中国规则
 
@@ -386,7 +408,7 @@ const WeiqiBoard: React.FC = () => {
       }
     }
 
-    return { rule: detectedRule, moves }
+    return { rule: detectedRule, moves, gameName: '', date: '', rules: detectedRule, komi: 7.5, handicap: 0, blackPlayer: '', whitePlayer: '' }
   }
 
   // 计算棋子的气数
@@ -420,7 +442,44 @@ const WeiqiBoard: React.FC = () => {
   }
 
   // 提子功能
-  const handlePlaceStone = (row: number, col: number) => {
+  
+  
+  const generateSGFFromState = (): string => {
+    const moves: Array<{ row: number; col: number; color: 'black' | 'white' }> = []
+    for (let row = 0; row < 19; row++) {
+      for (let col = 0; col < 19; col++) {
+        if (stones[row][col]) {
+          moves.push({ row, col, color: stones[row][col]! })
+        }
+      }
+    }
+    const komi = currentRule === 'chinese' ? 7.5 : 6.5
+    const game = { gameName, date: new Date().toISOString().split('T')[0], rules: currentRule, komi, handicap, blackPlayer, whitePlayer, moves }
+    return generateSGF(game)
+  }
+
+  // 复盘功能
+  const goToReviewMove = (moveNum: number) => {
+    if (moveNum < 0 || moveNum > moveHistory.length) return
+    const tempBoard = Array(19).fill(null).map(() => Array(19).fill(null))
+    for (let i = 0; i < moveNum && i < moveHistory.length; i++) {
+      const m = moveHistory[i]
+      if (m.row >= 0 && m.row < 19 && m.col >= 0 && m.col < 19) {
+        tempBoard[m.row][m.col] = m.color
+      }
+    }
+    setStones(tempBoard)
+    setReviewMove(moveNum)
+    const tempMoves: {[key: string]: number} = {}
+    for (let i = 0; i < moveNum; i++) {
+      const m = moveHistory[i]
+      tempMoves[`${m.row}-${m.col}`] = i + 1
+    }
+    setStoneMoves(tempMoves)
+    setMoveNumber(moveNum)
+  }
+
+const handlePlaceStone = (row: number, col: number) => {
     if (stones[row][col] === null) {
       // 创建新的棋盘状态
       const newStones = stones.map(row => [...row])
@@ -472,6 +531,8 @@ const WeiqiBoard: React.FC = () => {
         ...prev,
         [`${row}-${col}`]: newMoveNumber
       }))
+      // 记录到历史
+      setMoveHistory(prev => [...prev, { row, col, color: currentPlayer, num: newMoveNumber }])
       setCurrentPlayer(currentPlayer === 'black' ? 'white' : 'black')
     }
   }
@@ -639,6 +700,16 @@ const WeiqiBoard: React.FC = () => {
           })}
         </svg>
 
+        {moveHistory.length > 0 && (
+          <div className="flex items-center justify-center gap-1 mt-2 px-2 py-1 bg-white rounded shadow">
+            <button onClick={()=>goToReviewMove(0)} disabled={reviewMove===0} className="px-2 py-1 bg-gray-200 rounded text-sm disabled:opacity-50" title="第一步">⏮</button>
+            <button onClick={()=>goToReviewMove(reviewMove-1)} disabled={reviewMove===0} className="px-2 py-1 bg-gray-200 rounded text-sm disabled:opacity-50" title="上一步">◀</button>
+            <span className="text-xs px-2">{reviewMove}/{moveHistory.length}</span>
+            <button onClick={()=>goToReviewMove(reviewMove+1)} disabled={reviewMove>=moveHistory.length} className="px-2 py-1 bg-gray-200 rounded text-sm disabled:opacity-50" title="下一步">▶</button>
+            <button onClick={()=>goToReviewMove(moveHistory.length)} disabled={reviewMove>=moveHistory.length} className="px-2 py-1 bg-gray-200 rounded text-sm disabled:opacity-50" title="最后一步">⏭</button>
+          </div>
+        )}
+
         {/* 棋子层 - 修复位置偏移，继续向左上调整 */}
         <div className="absolute" style={{ left: margin, top: margin, width: boardSizePixels, height: boardSizePixels }}>
           {stones.map((row, rowIndex) =>
@@ -652,8 +723,8 @@ const WeiqiBoard: React.FC = () => {
                     className="absolute flex items-center justify-center"
                     style={{
                       // 进一步向左上调整
-                      left: colIndex * cellSize - cellSize / 2 - 3,
-                      top: rowIndex * cellSize - cellSize / 2 - 3,
+                      left: margin + colIndex * cellSize - cellSize / 2,
+                      top: margin + rowIndex * cellSize - cellSize / 2,
                       width: stoneSize,
                       height: stoneSize,
                     }}
@@ -692,8 +763,8 @@ const WeiqiBoard: React.FC = () => {
                 className="absolute cursor-crosshair hover:bg-yellow-300 hover:rounded-full transition-all duration-150 opacity-40 hover:opacity-80"
                 style={{
                   // 进一步向左上调整
-                  left: colIndex * cellSize - cellSize / 2 - 3,
-                  top: rowIndex * cellSize - cellSize / 2 - 3,
+                  left: margin + colIndex * cellSize - cellSize / 2,
+                  top: margin + rowIndex * cellSize - cellSize / 2,
                   width: cellSize,
                   height: cellSize,
                   borderRadius: '50%',
@@ -1223,7 +1294,64 @@ const WeiqiBoard: React.FC = () => {
         </div>
       )}
 
-      <div className="mt-2 text-xs text-gray-500">
+      
+      {/* 底部标签页 */}
+      <div className="mt-4">
+        <div className="flex gap-1 mb-2 flex-wrap justify-center">
+          <button onClick={()=>setActiveTab(activeTab==='timer'?'none':'timer')} className={`px-3 py-1 rounded text-sm ${activeTab==='timer'?'bg-blue-500 text-white':'bg-gray-200'}`}>⏱️ 计时</button>
+          <button onClick={()=>setActiveTab(activeTab==='review'?'none':'review')} className={`px-3 py-1 rounded text-sm ${activeTab==='review'?'bg-blue-500 text-white':'bg-gray-200'}`}>📻 复盘</button>
+          <button onClick={()=>setActiveTab(activeTab==='mark'?'none':'mark')} className={`px-3 py-1 rounded text-sm ${activeTab==='mark'?'bg-blue-500 text-white':'bg-gray-200'}`}>🎯 标记</button>
+          <button onClick={()=>setActiveTab(activeTab==='sgf'?'none':'sgf')} className={`px-3 py-1 rounded text-sm ${activeTab==='sgf'?'bg-blue-500 text-white':'bg-gray-200'}`}>📂 棋谱</button>
+        </div>
+        
+        {activeTab !== 'none' && (
+          <div className="bg-white rounded-lg shadow p-4">
+            {activeTab === 'timer' && (
+              <div className="text-center">
+                <div className="text-4xl font-bold mb-3" style={{color: gameTimer < 300 ? '#ef4444' : '#1f2937'}}>{Math.floor(gameTimer/60)}:{String(gameTimer%60).padStart(2,'0')}</div>
+                <div className="flex justify-center gap-2">
+                  <button onClick={()=>setTimerRunning(!timerRunning)} className={`px-4 py-2 rounded font-bold ${timerRunning?'bg-yellow-500':'bg-green-500'} text-white`}>{timerRunning?'⏸️ 暂停':'▶️ 开始'}</button>
+                  <button onClick={()=>{setGameTimer(3600); setTimerRunning(false);}} className="px-4 py-2 bg-gray-500 text-white rounded">🔄 重置</button>
+                </div>
+              </div>
+            )}
+            
+            {activeTab === 'sgf' && (
+              <div className="flex flex-wrap gap-2 justify-center">
+                <button onClick={()=>{navigator.clipboard.writeText(generateSGFFromState()); alert('已复制SGF!');}} className="px-4 py-2 bg-blue-500 text-white rounded">📋 复制SGF</button>
+                <button onClick={()=>{const s=generateSGFFromState(); const b=new Blob([s],{type:'text/plain'}); const u=URL.createObjectURL(b); const a=document.createElement('a'); a.href=u; a.download=gameName+'.sgf'; a.click();}} className="px-4 py-2 bg-green-500 text-white rounded">💾 下载</button>
+              </div>
+            )}
+            
+            {activeTab === 'review' && moveHistory.length > 0 && (
+              <div>
+                <div className="flex justify-center gap-1 mb-2">
+                  <button onClick={()=>goToReviewMove(0)} disabled={reviewMove===0} className="px-2 py-1 bg-gray-200 rounded text-xs disabled:opacity-50">⏮</button>
+                  <button onClick={()=>goToReviewMove(reviewMove-1)} disabled={reviewMove===0} className="px-2 py-1 bg-gray-200 rounded text-xs disabled:opacity-50">◀</button>
+                  <button onClick={()=>goToReviewMove(reviewMove+1)} disabled={reviewMove>=moveHistory.length} className="px-2 py-1 bg-gray-200 rounded text-xs disabled:opacity-50">▶</button>
+                  <button onClick={()=>goToReviewMove(moveHistory.length)} disabled={reviewMove>=moveHistory.length} className="px-2 py-1 bg-gray-200 rounded text-xs disabled:opacity-50">⏭</button>
+                </div>
+                <div className="text-center text-xs mb-1">当前: {reviewMove} / {moveHistory.length} 手</div>
+                <div className="h-1.5 bg-gray-200 rounded-full mb-2"><div className="h-full bg-blue-500" style={{width: (reviewMove/moveHistory.length*100)+'%'}}/></div>
+                <input type="number" min={0} max={moveHistory.length} value={reviewMove} onChange={e=>goToReviewMove(parseInt(e.target.value)||0)} className="w-full border rounded px-2 py-1 text-center text-sm"/>
+              </div>
+            )}
+            {activeTab === 'review' && moveHistory.length === 0 && (
+              <div className="text-center text-gray-500 text-sm">落子后自动记录历史棋步</div>
+            )}
+            
+            {activeTab === 'mark' && (
+              <div className="text-center">
+                <label className="flex items-center justify-center gap-2">
+                  <input type="checkbox" checked={markMode} onChange={e=>setMarkMode(e.target.checked)}/>
+                  <span>标记模式</span>
+                </label>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+<div className="mt-2 text-xs text-gray-500">
         <p>💡 棋子精确落在交叉点上，坐标清晰显示，基础提子功能已实现</p>
         <p>🎯 点击交叉点落子，星位标识清晰可见</p>
       </div>
